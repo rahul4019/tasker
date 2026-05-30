@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+   "compilerOptions": {
+    "ignoreDeprecations": "5.0",
+    "module": "NodeNext",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+
+    "types": ["node"],
+
+    "moduleDetection": "force",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    "outDir": "dist",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true,
+
+    "rootDir": "src",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"]
+    },
+
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"], // Include all TypeScript files in the src directory
+  "exclude": ["node_modules", "dist"] // Exclude node_modules and the output directory
+}
