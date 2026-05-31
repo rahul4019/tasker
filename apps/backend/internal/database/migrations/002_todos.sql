@@ -6,7 +6,7 @@ CREATE TABLE
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
         color TEXT DEFAULT '#6b7280',
-        description TEXT,
+        description TEXT
     );
 
 CREATE INDEX idx_todo_categories_user_id ON todo_categories (user_id);
@@ -56,12 +56,14 @@ CREATE TABLE
         updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
         todo_id UUID NOT NULL REFERENCES todos ON DELETE CASCADE,
         user_id TEXT NOT NULL,
-        content TEXT NOT NULL,
+        content TEXT NOT NULL
     );
 
-CREATE INDEX idx_todo_comments_todo_id ON (todo_id) CREATE INDEX idx_todo_comments_user_id ON (user_id);
+CREATE INDEX idx_todo_comments_todo_id ON todo_comments (todo_id);
 
-CREATE TRIGGER set_updated_at_todos BEFORE
+CREATE INDEX idx_todo_comments_user_id ON todo_comments (user_id);
+
+CREATE TRIGGER set_updated_at_todo_comments BEFORE
 UPDATE ON todos FOR EACH ROW EXECUTE FUNCTION trigger_set_updated_at ();
 
 -- Constraints
