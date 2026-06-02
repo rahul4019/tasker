@@ -44,6 +44,7 @@ func (p *UpdateTodoPayload) Validate() error {
 }
 
 // ----------------------------------------------------------
+
 type GetTodosQuery struct {
 	Page         *int       `query:"page" validate:"omitempty,min=1"`
 	Limit        *int       `query:"limit" validate:"omitempty,min=1,max=100"`
@@ -84,5 +85,35 @@ func (q *GetTodosQuery) Validate() error {
 		q.Order = &defaultOrder
 	}
 
+	return nil
+}
+
+// ----------------------------------------------------------
+
+type GetTodoByIDPayload struct {
+	ID uuid.UUID `param:"id" validate:"required,uuid"`
+}
+
+func (p *GetTodoByIDPayload) Validate() error {
+	validate := validator.New()
+	return validate.Struct(p)
+}
+
+// ----------------------------------------------------------
+
+type DeleteTodoPayload struct {
+	ID uuid.UUID `param:"id" validate:"required,uuid"`
+}
+
+func (p *DeleteTodoPayload) Validate() error {
+	validate := validator.New()
+	return validate.Struct(p)
+}
+
+// ----------------------------------------------------------
+
+type GetTodoStatsPayload struct{}
+
+func (p *GetTodoStatsPayload) Validate() error {
 	return nil
 }
