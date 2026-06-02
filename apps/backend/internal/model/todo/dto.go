@@ -42,3 +42,47 @@ func (p *UpdateTodoPayload) Validate() error {
 	validate := validator.New()
 	return validate.Struct(p)
 }
+
+// ----------------------------------------------------------
+type GetTodosQuery struct {
+	Page         *int       `query:"page" validate:"omitempty,min=1"`
+	Limit        *int       `query:"limit" validate:"omitempty,min=1,max=100"`
+	Sort         *string    `query:"sort" validate:"omitempty,oneof=created_at updated_at title priority due_date"`
+	Order        *string    `query:"order" validate:"omitempty,oneof=asc desc"`
+	Search       *string    `query:"search" validate:"omitempty,min=1"`
+	Status       *Status    `query:"status" validate:"omitempty,oneof=draft active completed archieved"`
+	Priority     *Priority  `query:"priority" validate:"omitempty,oneof=low medium high"`
+	CategoryID   *uuid.UUID `query:"categoryId" validate:"omitempty,uuid"`
+	ParentTodoID *uuid.UUID `query:"parentTodoId" validate:"omitempty,uuid"`
+	DueFrom      *time.Time `query:"dueFrom"`
+	DueTo        *time.Time `query:"dueTo"`
+	Overdue      *bool      `query:"overdue"`
+	Completed    *bool      `query:"completed"`
+}
+
+func (q *GetTodosQuery) Validate() error {
+	validate := validator.New()
+	if err := validate.Struct(q); err != nil {
+		return err
+	}
+
+	// Set default for pagination
+	if q.Page == nil {
+		defaultPage := 1
+		q.Page = &defaultPage
+	}
+	if q.Limit == nil {
+		defaultLimit := 20
+		q.Limit = &defaultLimit
+	}
+	if q.Sort == nil {
+		defaultSort := "created_at"
+		q.Sort = &defaultSort
+	}
+	if q.Order == nil {
+		defaultOrder := "desc"
+		q.Order = &defaultOrder
+	}
+
+	return nil
+}
