@@ -2,8 +2,12 @@ package repository
 
 import "github.com/rahul4019/tasker/internal/server"
 
-type Repositories struct{}
+type Repositories struct {
+	Todo *TodoRepository
+}
 
 func NewRepositories(s *server.Server) *Repositories {
-	return &Repositories{}
+	return &Repositories{
+		Todo: NewTodoRepository(s),
+	}
 }
