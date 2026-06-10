@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/rahul4019/tasker/internal/errs"
 	"github.com/rahul4019/tasker/internal/model"
 	"github.com/rahul4019/tasker/internal/model/todo"
 	"github.com/rahul4019/tasker/internal/server"
@@ -103,7 +105,6 @@ func (r *TodoRepository) GetTodoByID(ctx context.Context, userID string, todoID 
 			AND child.user_id=@user_id
 			LEFT JOIN todo_comments com ON com.todo_id=t.id
 			AND com.user_id=@user_id
-			LEFT JOIN todo_attachments att ON att.todo_id=t.id
 		WHERE
 			t.id=@id
 			AND t.user_id=@user_id
@@ -303,4 +304,155 @@ func (r *TodoRepository) GetTodos(ctx context.Context, userID string, query *tod
 		Total:      total,
 		TotalPages: (total + *query.Limit - 1) / *query.Limit,
 	}, nil
+}
+
+func (r *TodoRepository) UpdateTodo(ctx context.Context, userID string, payload *todo.UpdateTodoPayload) (*todo.Todo, error) {
+	stmt := "UPDATE todos SET "
+	args := pgx.NamedArgs{
+		"todo_id": payload.ID,
+		"user_id": userID,
+	}
+	setClauses := []string{}
+
+	if payload.Title != nil {
+		setClauses = append(setClauses, "title = @title")
+		args["title"] = *payload.Title
+	}
+
+	if payload.Description != nil {
+		setClauses = append(setClauses, "description = @description")
+		args["description"] = *payload.Description
+	}
+
+	if payload.Status != nil {
+		setClauses = append(setClauses, "status = @status")
+		args["status"] = *payload.Status
+
+		// Auto-set completed_at when status changes to completed
+		if *payload.Status == todo.StatusCompleted {
+			setClauses = append(setClauses, "completed_at = @completed_at")
+			args["completed_at"] = time.Now()
+		} else if *payload.Status != todo.StatusCompleted {
+			setClauses = append(setClauses, "completed_at = NULL")
+		}
+	}
+
+	if payload.Priority != nil {
+		setClauses = append(setClauses, "priority = @priority")
+		args["priority"] = *payload.Priority
+	}
+
+	if payload.DueDate != nil {
+		setClauses = append(setClauses, "due_date = @due_date")
+		args["due_date"] = *payload.DueDate
+	}
+
+	if payload.ParentTodoID != nil {
+		setClauses = append(setClauses, "parent_todo_id = @parent_todo_id")
+		args["parent_todo_id"] = *payload.ParentTodoID
+	}
+
+	if payload.CategoryID != nil {
+		setClauses = append(setClauses, "category_id = @category_id")
+		args["category_id"] = *payload.CategoryID
+	}
+
+	if payload.Metadata != nil {
+		setClauses = append(setClauses, "metadata = @metadata")
+		args["metadata"] = payload.Metadata
+	}
+
+	if len(setClauses) == 0 {
+		return nil, errs.NewBadRequestError("no fields to update", false, nil, nil, nil)
+	}
+
+	stmt += strings.Join(setClauses, ", ")
+	stmt += " WHERE id = @todo_id AND user_id = @user_id RETURNING *"
+
+	rows, err := r.server.DB.Pool.Query(ctx, stmt, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	updatedTodo, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[todo.Todo])
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect row from table:todos: %w", err)
+	}
+
+	return &updatedTodo, nil
+}
+
+func (r *TodoRepository) DeleteTodo(ctx context.Context, userID string, todoID uuid.UUID) error {
+	stmt := `
+		DELETE FROM todos
+		WHERE
+			id=@todo_id
+			AND user_id=@user_id
+	`
+
+	result, err := r.server.DB.Pool.Exec(ctx, stmt, pgx.NamedArgs{
+		"todo_id": todoID,
+		"user_id": userID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		code := "TODO_NOT_FOUND"
+		return errs.NewNotFoundError("todo not found", false, &code)
+	}
+
+	return nil
+}
+
+func (r *TodoRepository) GetTodoStats(ctx context.Context, userID string) (*todo.TodoStats, error) {
+	stmt := `
+		SELECT
+			COUNT(*) AS total,
+			COUNT(
+				CASE
+					WHEN status='draft' THEN 1
+				END
+			) AS draft,
+			COUNT(
+				CASE
+					WHEN status='active' THEN 1
+				END
+			) AS active,
+			COUNT(
+				CASE
+					WHEN status='completed' THEN 1
+				END
+			) AS completed,
+			COUNT(
+				CASE
+					WHEN status='archived' THEN 1
+				END
+			) AS archived,
+			COUNT(
+				CASE
+					WHEN due_date<NOW()
+					AND status!='completed' THEN 1
+				END
+			) AS overdue
+		FROM
+			todos
+		WHERE
+			user_id=@user_id
+	`
+
+	rows, err := r.server.DB.Pool.Query(ctx, stmt, pgx.NamedArgs{
+		"user_id": userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	stats, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[todo.TodoStats])
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect row from table:todos: %w", err)
+	}
+
+	return &stats, nil
 }

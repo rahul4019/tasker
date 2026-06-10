@@ -51,7 +51,7 @@ type GetTodosQuery struct {
 	Sort         *string    `query:"sort" validate:"omitempty,oneof=created_at updated_at title priority due_date"`
 	Order        *string    `query:"order" validate:"omitempty,oneof=asc desc"`
 	Search       *string    `query:"search" validate:"omitempty,min=1"`
-	Status       *Status    `query:"status" validate:"omitempty,oneof=draft active completed archieved"`
+	Status       *Status    `query:"status" validate:"omitempty,oneof=draft active completed archived"`
 	Priority     *Priority  `query:"priority" validate:"omitempty,oneof=low medium high"`
 	CategoryID   *uuid.UUID `query:"categoryId" validate:"omitempty,uuid"`
 	ParentTodoID *uuid.UUID `query:"parentTodoId" validate:"omitempty,uuid"`

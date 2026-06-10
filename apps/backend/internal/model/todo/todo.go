@@ -55,3 +55,12 @@ type PopulatedTodo struct {
 	Children []Todo             `json:"children" db:"children"`
 	Comments []comment.Comment  `json:"comments" db:"comments"`
 }
+
+type TodoStats struct {
+	Total     int `json:"total"`
+	Draft     int `json:"draft"`
+	Active    int `json:"active"`
+	Completed int `json:"completed"`
+	Archived  int `json:"archived"`
+	Overdue   int `json:"overdue"`
+}
