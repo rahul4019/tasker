@@ -7,6 +7,7 @@ import (
 	echoMiddleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rahul4019/tasker/internal/handler"
 	"github.com/rahul4019/tasker/internal/middleware"
+	v1 "github.com/rahul4019/tasker/internal/router/v1"
 	"github.com/rahul4019/tasker/internal/server"
 	"github.com/rahul4019/tasker/internal/service"
 	"golang.org/x/time/rate"
@@ -54,7 +55,8 @@ func NewRouter(s *server.Server, h *handler.Handlers, services *service.Services
 	registerSystemRoutes(router, h)
 
 	// register versioned routes
-	router.Group("/api/v1")
+	v1Router := router.Group("/api/v1")
+	v1.RegisterTodoRoutes(v1Router, h, middlewares)
 
 	return router
 }

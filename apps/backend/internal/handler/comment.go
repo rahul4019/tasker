@@ -5,70 +5,67 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/rahul4019/tasker/internal/middleware"
-	"github.com/rahul4019/tasker/internal/model"
-	"github.com/rahul4019/tasker/internal/model/category"
+	"github.com/rahul4019/tasker/internal/model/comment"
 	"github.com/rahul4019/tasker/internal/server"
 	"github.com/rahul4019/tasker/internal/service"
 )
 
-type CategoryHandler struct {
+type CommentHandler struct {
 	Handler
-	categoryService *service.CategoryService
+	commentService *service.CommentService
 }
 
-func NewCategoryHandler(s *server.Server, categoryService *service.CategoryService) *CategoryHandler {
-	return &CategoryHandler{
-		Handler:         NewHandler(s),
-		categoryService: categoryService,
+func NewCommentHandler(s *server.Server, commentService *service.CommentService) *CommentHandler {
+	return &CommentHandler{
+		Handler:        NewHandler(s),
+		commentService: commentService,
 	}
 }
 
-func (h *CategoryHandler) CreateCategory(c echo.Context) error {
+func (h *CommentHandler) AddComment(c echo.Context) error {
 	return Handle(
 		h.Handler,
-		func(c echo.Context, payload *category.CreateCategoryPayload) (*category.Category, error) {
+		func(c echo.Context, payload *comment.AddCommentPayload) (*comment.Comment, error) {
 			userID := middleware.GetUserID(c)
-			return h.categoryService.CreateCategory(c, userID, payload)
+			return h.commentService.AddComment(c, userID, payload.TodoID, payload)
 		},
 		http.StatusCreated,
-		&category.CreateCategoryPayload{},
+		&comment.AddCommentPayload{},
 	)(c)
 }
 
-func (h *CategoryHandler) GetCategories(c echo.Context) error {
+func (h *CommentHandler) GetCommentsByTodoID(c echo.Context) error {
 	return Handle(
 		h.Handler,
-		func(c echo.Context, query *category.GetCategoriesQuery) (
-			*model.PaginatedResponse[category.Category], error,
-		) {
+		func(c echo.Context, payload *comment.GetCommentsByTodoIDPayload) ([]comment.Comment, error) {
 			userID := middleware.GetUserID(c)
-			return h.categoryService.GetCategories(c, userID, query)
+			return h.commentService.GetCommentsByTodoID(c, userID, payload.TodoID)
 		},
 		http.StatusOK,
-		&category.GetCategoriesQuery{},
+		&comment.GetCommentsByTodoIDPayload{},
 	)(c)
 }
 
-func (h *CategoryHandler) UpdateCategory(c echo.Context) error {
+func (h *CommentHandler) UpdateComment(c echo.Context) error {
 	return Handle(
 		h.Handler,
-		func(c echo.Context, payload *category.UpdateCategoryPayload) (*category.Category, error) {
+		func(c echo.Context, payload *comment.UpdateCommentPayload) (*comment.Comment, error) {
 			userID := middleware.GetUserID(c)
-			return h.categoryService.UpdateCategory(c, userID, payload.ID, payload)
+			return h.commentService.UpdateComment(c, userID, payload.ID, payload.Content)
 		},
 		http.StatusOK,
-		&category.UpdateCategoryPayload{},
+		&comment.UpdateCommentPayload{},
 	)(c)
 }
 
-func (h *CategoryHandler) DeleteCategory(c echo.Context) error {
+func (h *CommentHandler) DeleteComment(c echo.Context) error {
 	return HandleNoContent(
 		h.Handler,
-		func(c echo.Context, payload *category.DeleteCategoryPayload) error {
+		func(c echo.Context, payload *comment.DeleteCommentPayload) error {
 			userID := middleware.GetUserID(c)
-			return h.categoryService.DeleteCategory(c, userID, payload.ID)
+			return h.commentService.DeleteComment(c, userID, payload.ID)
 		},
 		http.StatusNoContent,
-		&category.DeleteCategoryPayload{},
+		&comment.DeleteCommentPayload{},
 	)(c)
 }
