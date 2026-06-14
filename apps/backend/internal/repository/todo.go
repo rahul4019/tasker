@@ -161,38 +161,48 @@ func (r *TodoRepository) CheckTodoExists(ctx context.Context, userID string, tod
 
 func (r *TodoRepository) GetTodos(ctx context.Context, userID string, query *todo.GetTodosQuery) (*model.PaginatedResponse[todo.PopulatedTodo], error) {
 	stmt := `
-		SELECT
-			t.*,
-			CASE
-				WHEN c.id IS NOT NULL THEN to_jsonb(camel (c))
-				ELSE NULL
-			END AS category,
-			COALESCE(
-				jsonb_agg(
-					to_jsonb(camel (child))
-					ORDER BY
-						child.sort_order ASC,
-						child.created_at ASC
-				) FILTER (
-					WHERE 
-						child.id IS NOT NULL	 
-				),
-				'[]'::JSONB
-			) AS children
-		FROM
-			todos t
-			LEFT JOIN todo_categories c ON c.id=t.category_id
-			AND c.user_id=@user_id
-			LEFT JOIN todos child ON child.parent_todo_id=t.id
-			AND child.user_id=@user_id
-			LEFT JOIN todo_comments com ON com.todo_id=t.id
-			AND com.user_id=@user_id
+	SELECT
+		t.*,
+		CASE
+			WHEN c.id IS NOT NULL THEN to_jsonb(camel (c))
+			ELSE NULL
+		END AS category,
+		COALESCE(
+			jsonb_agg(
+				to_jsonb(camel (child))
+				ORDER BY
+					child.sort_order ASC,
+					child.created_at ASC
+			) FILTER (
+				WHERE
+					child.id IS NOT NULL
+			),
+			'[]'::JSONB
+		) AS children,
+		COALESCE(
+			jsonb_agg(
+				to_jsonb(camel (com))
+				ORDER BY
+					com.created_at ASC
+			) FILTER (
+				WHERE
+					com.id IS NOT NULL
+			),
+			'[]'::JSONB
+		) AS comments
+	FROM
+		todos t
+		LEFT JOIN todo_categories c ON c.id=t.category_id
+		AND c.user_id=@user_id
+		LEFT JOIN todos child ON child.parent_todo_id=t.id
+		AND child.user_id=@user_id
+		LEFT JOIN todo_comments com ON com.todo_id=t.id
+		AND com.user_id=@user_id
 `
 
 	args := pgx.NamedArgs{
 		"user_id": userID,
 	}
-
 	conditions := []string{"t.user_id = @user_id"}
 
 	if query.Status != nil {
@@ -228,8 +238,8 @@ func (r *TodoRepository) GetTodos(ctx context.Context, userID string, query *tod
 		args["due_to"] = *query.DueTo
 	}
 
-	if query.Overdue != nil {
-		conditions = append(conditions, "t.due_date <= NOW() AND t.status != 'completed'")
+	if query.Overdue != nil && *query.Overdue {
+		conditions = append(conditions, "t.due_date < NOW() AND t.status != 'completed'")
 	}
 
 	if query.Completed != nil {
@@ -293,7 +303,7 @@ func (r *TodoRepository) GetTodos(ctx context.Context, userID string, query *tod
 				TotalPages: 0,
 			}, nil
 		}
-		return nil, fmt.Errorf("failed to collect rows from table:todos user_id=%s: %w", userID, err)
+		return nil, fmt.Errorf("failed to collect rows from table:todos for user_id=%s: %w", userID, err)
 	}
 
 	return &model.PaginatedResponse[todo.PopulatedTodo]{
