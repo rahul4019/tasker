@@ -27,7 +27,7 @@ func (p *CreateTodoPayload) Validate() error {
 // ----------------------------------------------------------
 
 type UpdateTodoPayload struct {
-	ID           uuid.UUID  `json:"id" validate:"required,uuid"`
+	ID           uuid.UUID  `param:"id" validate:"required,uuid"`
 	Title        *string    `json:"title" validate:"omitempty,min=1,max=255"`
 	Description  *string    `json:"description" validate:"omitempty,max=1000"`
 	Status       *Status    `json:"status" validate:"omitempty,oneof=draft active completed archived"`
