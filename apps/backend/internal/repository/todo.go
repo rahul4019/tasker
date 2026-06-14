@@ -172,7 +172,7 @@ func (r *TodoRepository) GetTodos(ctx context.Context, userID string, query *tod
 					to_jsonb(camel (child))
 					ORDER BY
 						child.sort_order ASC,
-						child.created_at ASC,
+						child.created_at ASC
 				) FILTER (
 					WHERE 
 						child.id IS NOT NULL	 
@@ -187,7 +187,6 @@ func (r *TodoRepository) GetTodos(ctx context.Context, userID string, query *tod
 			AND child.user_id=@user_id
 			LEFT JOIN todo_comments com ON com.todo_id=t.id
 			AND com.user_id=@user_id
-			LEFT JOIN todo_attachments att ON att.todo_id=t.id
 `
 
 	args := pgx.NamedArgs{
