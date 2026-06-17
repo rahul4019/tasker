@@ -3,6 +3,7 @@ import {
   schemaWithPagination,
   ZPopulatedTodo,
   ZTodo,
+  ZTodoAttachment,
   ZTodoStats,
 } from '@tasker/zod';
 import { initContract } from '@ts-rest/core';
@@ -123,6 +124,23 @@ export const todoContract = c.router(
       description: 'Get todo statistics',
       responses: {
         200: ZTodoStats,
+      },
+      metadata: metadata,
+    },
+
+    uploadTodoAttachment: {
+      summary: 'Upload attachment to todo',
+      path: '/todos/:id/attachments',
+      method: 'POST',
+      description: 'Upload a file attachment to a todo',
+      contentType: 'multipart/form-data',
+      body: z.object({
+        file: z.object({
+          type: z.literal('file'),
+        }),
+      }),
+      responses: {
+        201: ZTodoAttachment,
       },
       metadata: metadata,
     },
