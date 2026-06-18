@@ -64,3 +64,14 @@ func (s *S3Client) CreatePresignedUrl(ctx context.Context, bucket string, object
 
 	return presignedUrl.URL, nil
 }
+
+func (s *S3Client) DeleteObject(ctx context.Context, bucket string, key string) error {
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete object %s: %w", key, err)
+	}
+	return nil
+}
