@@ -47,3 +47,20 @@ func (s *S3Client) UploadFile(ctx context.Context, bucket string, fileName strin
 
 	return fileKey, nil
 }
+
+func (s *S3Client) CreatePresignedUrl(ctx context.Context, bucket string, objectKey string) (string, error) {
+	presignClient := s3.NewPresignClient(s.client)
+
+	expiration := time.Minute * 60
+
+	presignedUrl, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(objectKey),
+	}, s3.WithPresignExpires(expiration))
+
+	if err != nil {
+		return "", err
+	}
+
+	return presignedUrl.URL, nil
+}
