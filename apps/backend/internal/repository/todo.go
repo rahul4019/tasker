@@ -590,3 +590,83 @@ func (r *TodoRepository) DeleteTodoAttachment(
 
 	return nil
 }
+
+func (r *TodoRepository) UploadTodoAttachment(
+	ctx context.Context,
+	todoID uuid.UUID,
+	userID string,
+	s3Key string,
+	fileName string,
+	fileSize int64,
+	mimeType string,
+) (*todo.TodoAttachment, error) {
+	stmt := `
+		INSERT INTO
+			todo_attachments (
+				todo_id,
+				name,
+				uploaded_by,
+				download_key,
+				file_size,
+				mime_type
+			)
+		VALUES
+			(
+				@todo_id,
+				@name,
+				@uploaded_by,
+				@download_key,
+				@file_size,
+				@mime_type
+			)
+		RETURNING
+			*
+	`
+
+	rows, err := r.server.DB.Pool.Query(ctx, stmt, pgx.NamedArgs{
+		"todo_id":      todoID,
+		"name":         fileName,
+		"uploaded_by":  userID,
+		"download_key": s3Key,
+		"file_size":    fileSize,
+		"mime_type":    mimeType,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create todo attachment for todo_id=%s: %w", todoID.String(), err)
+	}
+
+	attachment, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[todo.TodoAttachment])
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect row from table:todo_attachments: %w", err)
+	}
+
+	return &attachment, nil
+}
+
+func (r *TodoRepository) DeleteTodoAttachment(
+	ctx context.Context,
+	todoID uuid.UUID,
+	attachmentID uuid.UUID,
+) error {
+	stmt := `
+		DELETE FROM todo_attachments
+		WHERE
+			todo_id = @todo_id
+			AND id = @attachment_id
+	`
+
+	result, err := r.server.DB.Pool.Exec(ctx, stmt, pgx.NamedArgs{
+		"todo_id":       todoID,
+		"attachment_id": attachmentID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete todo attachment: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		code := "ATTACHMENT_NOT_FOUND"
+		return errs.NewNotFoundError("attachment not found", false, &code)
+	}
+
+	return nil
+}
