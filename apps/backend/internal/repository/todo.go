@@ -642,31 +642,3 @@ func (r *TodoRepository) UploadTodoAttachment(
 
 	return &attachment, nil
 }
-
-func (r *TodoRepository) DeleteTodoAttachment(
-	ctx context.Context,
-	todoID uuid.UUID,
-	attachmentID uuid.UUID,
-) error {
-	stmt := `
-		DELETE FROM todo_attachments
-		WHERE
-			todo_id = @todo_id
-			AND id = @attachment_id
-	`
-
-	result, err := r.server.DB.Pool.Exec(ctx, stmt, pgx.NamedArgs{
-		"todo_id":       todoID,
-		"attachment_id": attachmentID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to delete todo attachment: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		code := "ATTACHMENT_NOT_FOUND"
-		return errs.NewNotFoundError("attachment not found", false, &code)
-	}
-
-	return nil
-}
