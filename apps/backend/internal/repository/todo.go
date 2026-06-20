@@ -642,3 +642,34 @@ func (r *TodoRepository) UploadTodoAttachment(
 
 	return &attachment, nil
 }
+
+// CRON REQUIREMENTS
+func (r *TodoRepository) GetTodosDueInHours(ctx context.Context, hours int, limit int) ([]todo.Todo, error) {
+	stmt := `
+		SELECT
+			t.*,
+			t.user_id
+		FROM
+			todos t
+		WHERE
+			t.due_date IS NOT NULL
+			AND t.due_date > NOW()
+			AND t.due_date <= NOW() + INTERVAL '%d hours'
+			AND t.status NOT IN ('completed', 'archived')
+		ORDER BY
+			t.due_date ASC
+		LIMIT
+			%d
+	`
+	query := fmt.Sprintf(stmt, hours, limit)
+	rows, err := r.server.DB.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute get todos due in %d hours query: %w", hours, err)
+	}
+
+	todos, err := pgx.CollectRows(rows, pgx.RowToStructByName[todo.Todo])
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute get todos due in %d hours query: %w", err)
+	}
+	return todos, nil
+}
