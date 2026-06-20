@@ -331,3 +331,42 @@ func (s *TodoService) DeleteTodoAttachment(
 
 	return nil
 }
+
+func (s *TodoService) GetAttachmentPresignedURL(
+	ctx echo.Context,
+	userID string,
+	todoID uuid.UUID,
+	attachmentID uuid.UUID,
+) (string, error) {
+	logger := middleware.GetLogger(ctx)
+
+	// Verify todo exists and belongs to user
+	_, err := s.todoRepo.CheckTodoExists(ctx.Request().Context(), userID, todoID)
+	if err != nil {
+		logger.Error().Err(err).Msg("todo validation failed")
+		return "", err
+	}
+
+	// Get attachement details
+	attachment, err := s.todoRepo.GetTodoAttachment(ctx.Request().Context(),
+		todoID,
+		attachmentID,
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to get attachment details")
+		return "", err
+	}
+
+	// Generate presigned URL
+	url, err := s.awsClient.S3.CreatePresignedUrl(
+		ctx.Request().Context(),
+		s.server.Config.AWS.UploadBucket,
+		attachment.DownloadKey,
+	)
+	if err != nil {
+		logger.Error().Err(err).Msg("failed to generate presigned URL")
+		return "", err
+	}
+
+	return url, nil
+}
