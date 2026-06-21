@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 )
 
 const (
-	TaskWelcome = "email:welcome"
+	TaskWelcome           = "email:welcome"
+	TaskReminderEmail     = "email:reminder"
+	TaskWeeklyReportEmail = "email:weekly_report"
 )
 
 type WelcomeEmailPayload struct {
@@ -29,4 +32,28 @@ func NewWelcomeEmailTask(to, firstName string) (*asynq.Task, error) {
 		asynq.MaxRetry(3),
 		asynq.Queue("default"),
 		asynq.Timeout(30*time.Second)), nil
+}
+
+type ReminderEmailTask struct {
+	UserID    string    `json:"user_id"`
+	TodoID    uuid.UUID `json:"todo_id"`
+	TodoTitle string    `json:"todo_title"`
+	DueDate   time.Time `json:"due_date"`
+	TaskType  string    `json:"task_type"`
+}
+
+func EnqueueReminderEmail(client *asynq.Client, task *ReminderEmailTask) error {
+	payload, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+
+	asynqTask := asynq.NewTask(TaskReminderEmail,
+		payload,
+		asynq.MaxRetry(3),
+		asynq.Queue("default"),
+		asynq.Timeout(30*time.Second))
+
+	_, err = client.Enqueue(asynqTask)
+	return err
 }
