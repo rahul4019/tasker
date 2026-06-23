@@ -1,15 +1,23 @@
 package job
 
 import (
+	"context"
+
 	"github.com/hibiken/asynq"
 	"github.com/rahul4019/tasker/internal/config"
+	"github.com/rahul4019/tasker/internal/lib/email"
 	"github.com/rs/zerolog"
 )
 
 type JobService struct {
-	Client *asynq.Client
-	server *asynq.Server
-	logger *zerolog.Logger
+	Client      *asynq.Client
+	server      *asynq.Server
+	logger      *zerolog.Logger
+	authService AuthServiceInterface
+	emailClient *email.Client
+}
+type AuthServiceInterface interface {
+	GetUserEmail(ctx context.Context, userID string) (string, error)
 }
 
 func NewJobService(logger *zerolog.Logger, cfg *config.Config) *JobService {
@@ -37,6 +45,10 @@ func NewJobService(logger *zerolog.Logger, cfg *config.Config) *JobService {
 		logger: logger,
 	}
 
+}
+
+func (j *JobService) SetAuthService(authService AuthServiceInterface) {
+	j.authService = authService
 }
 
 func (j *JobService) Start() error {

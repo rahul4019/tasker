@@ -47,3 +47,57 @@ func (j *JobService) handleWelcomeEmailTask(ctx context.Context, t *asynq.Task) 
 		Msg("Successfully sent welcome email")
 	return nil
 }
+
+func (j *JobService) handleReminderEmailTask(ctx context.Context, t *asynq.Task) error {
+	var p ReminderEmailTask
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return fmt.Errorf("failed to unmarshal reminder email payload: %W", err)
+	}
+
+	j.logger.Info().
+		Str("type", p.TaskType).
+		Str("user_id", p.UserID).
+		Str("todo_id", p.TodoID.String()).
+		Str("todo_title", p.TodoTitle).
+		Msg("Processing reminder email task")
+
+	userEmail, err := j.authService.GetUserEmail(ctx, p.UserID)
+	if err != nil {
+		j.logger.Error().
+			Str("type", p.TaskType).
+			Str("user_id", p.UserID).
+			Err(err).
+			Msg("Failed to resolve user email")
+		return fmt.Errorf("Failed to resolve user email for user  %s:%w", p.UserID, err)
+	}
+
+	switch p.TaskType {
+	case "due_date_reminder":
+		err = j.emailClient.SendDueDateReminderEmail(
+			userEmail,
+			p.TodoTitle,
+			p.TodoID,
+			p.DueDate,
+		)
+	case "overdue_notification":
+		err = j.emailClient.SendOverdueNotificationEmail(
+			userEmail,
+			p.TodoTitle,
+			p.TodoID,
+			p.DueDate,
+		)
+	default:
+		return fmt.Errorf("unknown reminder task type: %s", p.TaskType)
+	}
+
+	if err != nil {
+		j.logger.Error().
+			Str("type", p.TaskType).
+			Str("user_id", p.UserID).
+			Err(err).
+			Msg("Failed to resolve user email")
+		return fmt.Errorf("Failed to resolve user email for user  %s:%w", p.UserID, err)
+	}
+
+	return nil
+}
