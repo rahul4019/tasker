@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
+	"github.com/rahul4019/tasker/internal/model/todo"
 )
 
 const (
@@ -53,6 +54,33 @@ func EnqueueReminderEmail(client *asynq.Client, task *ReminderEmailTask) error {
 		asynq.MaxRetry(3),
 		asynq.Queue("default"),
 		asynq.Timeout(30*time.Second))
+
+	_, err = client.Enqueue(asynqTask)
+	return err
+}
+
+type WeeklyReportEmailTask struct {
+	UserID         string               `json:"user_id"`
+	WeekStart      time.Time            `json:"week_start"`
+	WeekEnd        time.Time            `json:"week_end"`
+	CompletedCount int                  `json:"CompletedCount"`
+	ActiveCount    int                  `json:"active_count"`
+	OverdueCount   int                  `json:"overdue_count"`
+	CompletedTodos []todo.PopulatedTodo `json:"completed_todos"`
+	OverdueTodos   []todo.PopulatedTodo `json:"OverdueTodos"`
+}
+
+func EnqueWeeklyReportEmail(client *asynq.Client, task *WeeklyReportEmailTask) error {
+	payload, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+
+	asynqTask := asynq.NewTask(TaskWeeklyReportEmail, payload,
+		asynq.MaxRetry(3),
+		asynq.Queue("default"),
+		asynq.Timeout(60*time.Second), // Longer time for report generation
+	)
 
 	_, err = client.Enqueue(asynqTask)
 	return err
