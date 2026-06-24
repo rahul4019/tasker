@@ -101,3 +101,53 @@ func (j *JobService) handleReminderEmailTask(ctx context.Context, t *asynq.Task)
 
 	return nil
 }
+
+func (j *JobService) handleWeeklyReportEmailTask(ctx context.Context, t *asynq.Task) error {
+	var p WeeklyReportEmailTask
+	if err := json.Unmarshal(t.Payload(), &p); err != nil {
+		return fmt.Errorf("failed to unmarshal weekly report email payload: %w", err)
+	}
+
+	j.logger.Info().
+		Str("type", "weekly_report").
+		Str("user_id", p.UserID).
+		Int("completed_count", p.CompletedCount).
+		Int("active_count", p.ActiveCount).
+		Int("overdue_count", p.OverdueCount).
+		Msg("Processing weekly report email task")
+
+	userEmail, err := j.authService.GetUserEmail(ctx, p.UserID)
+	if err != nil {
+		j.logger.Error().
+			Str("type", "weekly_report").
+			Str("user_id", p.UserID).
+			Err(err).
+			Msg("Failed to resolve user email")
+		return fmt.Errorf("failed to resolve user email for user %s: %w", p.UserID, err)
+	}
+
+	err = j.emailClient.SendWeeklyReportEmail(
+		userEmail,
+		p.WeekStart,
+		p.WeekEnd,
+		p.CompletedCount,
+		p.ActiveCount,
+		p.OverdueCount,
+		p.CompletedTodos,
+		p.OverdueTodos,
+	)
+	if err != nil {
+		j.logger.Error().
+			Str("type", "weekly_report").
+			Str("user_id", p.UserID).
+			Err(err).
+			Msg("Failed to send weekly report email")
+		return err
+	}
+
+	j.logger.Info().
+		Str("type", "weekly_report").
+		Str("user_id", p.UserID).
+		Msg("Successfully sent weekly report email")
+	return nil
+}
