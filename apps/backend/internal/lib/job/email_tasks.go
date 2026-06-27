@@ -70,7 +70,7 @@ type WeeklyReportEmailTask struct {
 	OverdueTodos   []todo.PopulatedTodo `json:"OverdueTodos"`
 }
 
-func EnqueWeeklyReportEmail(client *asynq.Client, task *WeeklyReportEmailTask) error {
+func EnqueueWeeklyReportEmail(client *asynq.Client, task *WeeklyReportEmailTask) error {
 	payload, err := json.Marshal(task)
 	if err != nil {
 		return err
@@ -79,8 +79,7 @@ func EnqueWeeklyReportEmail(client *asynq.Client, task *WeeklyReportEmailTask) e
 	asynqTask := asynq.NewTask(TaskWeeklyReportEmail, payload,
 		asynq.MaxRetry(3),
 		asynq.Queue("default"),
-		asynq.Timeout(60*time.Second), // Longer time for report generation
-	)
+		asynq.Timeout(60*time.Second)) // Longer timeout for report generation
 
 	_, err = client.Enqueue(asynqTask)
 	return err
