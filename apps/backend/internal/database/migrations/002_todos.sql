@@ -27,7 +27,7 @@ CREATE TABLE
         status TEXT DEFAULT 'draft',
         priority TEXT NOT NULL DEFAULT 'medium',
         due_date TIMESTAMPTZ,
-        commpleted_at TIMESTAMPTZ,
+        completed_at TIMESTAMPTZ,
         parent_todo_id UUID REFERENCES todos,
         category_id UUID REFERENCES todo_categories,
         metadata JSONB,
