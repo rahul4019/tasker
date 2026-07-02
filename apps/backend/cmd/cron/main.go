@@ -8,16 +8,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func main(){
+func main() {
 	rootCmd := &cobra.Command{
-		Use: "cron",
+		Use:   "cron",
 		Short: "Tasker Cron Job Runner",
-		Long:"Tasker Cron Job Runner - Execute scheduled jobs for the Tasker task management system"
+		Long:  "Tasker Cron Job Runner - Execute scheduled jobs for the Tasker task management system",
 	}
 
 	// List command
 	listCmd := &cobra.Command{
-		Use: "List",
+		Use:   "List",
 		Short: "List available cron jobs",
 		Run: func(cmd *cobra.Command, args []string) {
 			registry := cron.NewJobRegistry()
@@ -27,15 +27,15 @@ func main(){
 	rootCmd.AddCommand(listCmd)
 
 	// Create subcommands for each job
-	registry :=cron.NewJobRegistry()
-	for _, jobName := range registry.List(){
+	registry := cron.NewJobRegistry()
+	for _, jobName := range registry.List() {
 		job, _ := registry.Get(jobName)
 		// Capture job name in closure
 		name := jobName
 		jobCmd := &cobra.Command{
-			Use: job.Name(),
-			Short:job.Description(),
-			RunE: func(cmd *cobra.Command, args []string) error{
+			Use:   job.Name(),
+			Short: job.Description(),
+			RunE: func(cmd *cobra.Command, args []string) error {
 				return runJob(name)
 			},
 		}
@@ -48,21 +48,21 @@ func main(){
 }
 
 func runJob(jobName string) error {
-	registry :=cron.NewJobRegistry()
+	registry := cron.NewJobRegistry()
 
 	job, err := registry.Get(jobName)
 	if err != nil {
-		return  fmt.Errorf("job '%s' not found",jobName)
+		return fmt.Errorf("job '%s' not found", jobName)
 	}
 
 	runner, err := cron.NewJobRunner(job)
 	if err != nil {
-		return fmt.Errorf("failed to create job runner: %w",err)
+		return fmt.Errorf("failed to create job runner: %w", err)
 	}
 
-	if err : = runner.Run(): err != nil{
-		return fmt.Errorf("job failed: %w",err)
+	if err := runner.Run(); err != nil {
+		return fmt.Errorf("job failed: %w", err)
 	}
 
-	return  nil
+	return nil
 }
