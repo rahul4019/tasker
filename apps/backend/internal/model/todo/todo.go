@@ -35,7 +35,7 @@ type Todo struct {
 	Status       Status     `json:"status" db:"status"`
 	Priority     Priority   `json:"priority" db:"priority"`
 	DueDate      *time.Time `json:"DueDate" db:"due_date"`
-	CompletedAt  *time.Time `json:"commpletedAt" db:"commpleted_at"`
+	CompletedAt  *time.Time `json:"completedAt" db:"completed_at"`
 	ParentTodoID *uuid.UUID `json:"parentTodoId" db:"parent_todo_id"`
 	CategoryID   *uuid.UUID `json:"categoryId" db:"category_id"`
 	Metadata     *Metadata  `json:"metadata" db:"metadata"`
